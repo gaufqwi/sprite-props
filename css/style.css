@@ -1,0 +1,49 @@
+body {
+    font-size: 80%;
+}
+
+h1 {
+    font-size: large;
+    font-weight: normal;
+}
+
+#icongallery {
+    border: 1px black solid;
+    width: 100%;
+    height: 600px;
+}
+
+.spritecell {
+    display: inline-block;
+    margin: 8px;
+    border: 0;
+    padding: 0;
+    text-align:center;
+}
+
+.spritecell img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.spritecell .filename {
+    font-size: small;
+}
+
+.hilite {
+    background-color: yellow;
+}
+
+.controlpanel {
+    border: 1px black solid;
+    border-radius: 4px;
+    width: 100%;
+    text-align: center;
+}
+
+/* jQuery UI overrides */
+
+.ui-tabs .ui-tabs-nav li a {
+    font-size: small;
+}
