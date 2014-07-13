@@ -8,39 +8,59 @@
     </head>
     <body>
 
-    <div id="proppanel" class="controlpanel">
-        <h1>Properties</h1>
-        
-        <div id="propset">
+    <div class="column" style="width: 360px;">
+        <div id="propsetpanel" class="controlpanel">
+            <h1>Set Properties</h1>
+            
+            <div id="propset">
+            
+            <div id="buttondiv"><button id="addprop">Add Property</button></div>    
+            </div>
+            <button id="applyprop">Apply</button>
             
         </div>
-        <button id="applyprop">Apply Properties</button>
         
+        <div id="namepanel" class="controlpanel">
+            <h1>Naming</h1>
+            
+    
+        </div>
+    
+        <div id="actionpanel" class="controlpanel">
+            <h1>Actions</h1>
+            
+        </div>
     </div>
     
-    <div id="namepanel" class="controlpanel">
-        <h1>Configuration</h1>
-        <div id="configtabs" class="tabs">
-            <ul>
-                <li><a href="#propertiestab">Properties</a></li>
-                <li><a href="#namingtab">Naming</a></li>
-            </ul>
-            
-            <div id="propertiestab">
-            
-            </div>
-            
-            <div id="namingtab">
-                
-            </div>
-            
-        </div>
-    </div>
-
+    <div class="column" style="width: 736px;">
     <div id="icongallery"></div>
     
         <script src="lib/jquery-2.1.1.min.js"></script>
         <script src="lib/jquery-ui.min.js"></script>
         <script src="js/code.js"></script>
     </body>
+    </div>
+    
+    <div class="column" style="width: 300px;">
+    <div id="proppanel" class="controlpanel">
+        <h1>Current Properties</h1>
+        
+        <div id="spritefilename" class="filename"></div>
+        
+        <div id="spritename" cla="spritename"></div>
+        
+        <ul></ul>
+        
+
+    </div>
+    
+    </div>
+    
+    <div id="propnamedialog">
+        
+        <div class="errmsg"></div>
+        
+        <span>Property Name</span> <input id="newpropname" size="16">
+        
+    </div>
 </html>
