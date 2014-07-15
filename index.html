@@ -8,13 +8,24 @@
     </head>
     <body>
 
-    <div class="column" style="width: 360px;">
+    <div class="column" style="width: 480px;">
+        <div id="proppanel" class="controlpanel">
+            <h1>Current Sprite Properties</h1>
+            
+            <div id="spritefilename" class="filename centerdiv"></div>
+            
+            <div id="spritename" class="spritename centerdiv"></div>
+            
+            <ul></ul>
+        
+        </div>
+    
         <div id="propsetpanel" class="controlpanel">
             <h1>Set Properties</h1>
             
             <div id="propset">
             
-            <div id="buttondiv"><button id="addprop">Add Property</button></div>    
+            <div class="centerdiv"><button id="addprop">Add Property</button></div>    
             </div>
             <button id="applyprop">Apply</button>
             
@@ -22,6 +33,12 @@
         
         <div id="namepanel" class="controlpanel">
             <h1>Naming</h1>
+            
+            <div id="nameset">
+                    <!--<div class="centerdiv"><button id="addname" class="addname">Add Name Component</button></div>    -->
+            </div>
+            
+            <input type="checkbox" id="autonumber"><label for="autonumber">Auto Number Names</label>
             
     
         </div>
@@ -41,20 +58,8 @@
     </body>
     </div>
     
-    <div class="column" style="width: 300px;">
-    <div id="proppanel" class="controlpanel">
-        <h1>Current Properties</h1>
-        
-        <div id="spritefilename" class="filename"></div>
-        
-        <div id="spritename" cla="spritename"></div>
-        
-        <ul></ul>
-        
-
-    </div>
-    
-    </div>
+    <!--<div class="column" style="width: 300px;">-->
+    <!--</div>-->
     
     <div id="propnamedialog">
         

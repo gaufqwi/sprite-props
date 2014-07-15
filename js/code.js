@@ -1,13 +1,117 @@
 $(function () {
-    var sprites = [], properties = {};
+    var sprites = [], properties = {}, curSprite = null, autoNumber = true;
     var changes = {set: {}, rename: {}, delete: [] };
+    var naming = [{type: 'lit', value: '', kase: 'toMixedCase'}], uuid = 0;
     var dialog;
     
     // Test data
     properties = {material: [], color: ['red', 'green', 'blue'], size: []};
     
+    // Monkey patch
+    String.prototype.toMixedCase = function () {
+        return this.charAt(0).toUpperCase() + this.slice(1);
+    };
+    
     function dbg(ob) {
         console.log(JSON.stringify(ob, null, " "));
+    }
+    
+    function displaySpriteProperties (sprite) {
+        var ul = $('#proppanel ul');
+       
+        ul.empty();
+        if (sprite === null) {
+            $('#spritename').empty();
+            $('#spritefilename').empty();
+        } else {
+            $('#spritename').html(sprite.name);
+            $('#spritefilename').html(sprite.filename);
+           
+            for (var prop in sprite.userdata) {
+                ul.append('<li><span class="propstyle">' + prop + ':</span> ' 
+                    + sprite.userdata[prop] + '</li>');
+           }
+        }
+    }
+    
+    function applyPropertyChanges () {
+        var i, j, prop, sprite;
+        
+        for (i=0; i<sprites.length; i++) {
+            sprite = sprites[i];
+            if (!sprite.selected) {
+                continue;
+            }
+            // Set properties
+            for (prop in changes.set) {
+                sprite.userdata[prop] = changes.set[prop];
+            }
+           // Delete properties
+           for (j=0; j<changes.delete.length; j++) {
+               delete sprite.userdata[changes.delete[j]];
+               delete changes.rename[changes.delete[j]];
+           }
+           // Rename properties
+           for (prop in changes.rename) {
+               sprite.userdata[changes.rename[prop]] = sprite.userdata[prop];
+               delete sprite.userdata[prop];
+           }
+        }
+           
+           changes = {set: {}, rename: {}, delete: [] };
+           updatePropEditor();
+    }
+    
+    function generateSpriteNames () {
+        var i, j, sprite, spritesCopy, namespec, nameCounts = {};
+        // Slot in name stubs
+        for (i=0; i<sprites.length; i++) {
+            sprite = sprites[i];
+            sprite.name = '';
+            for (j=0; j<naming.length; j++) {
+                namespec = naming[j];
+                if (namespec.type === 'lit') {
+                    dbg(namespec);
+                    sprite.name = sprite.name + namespec.value[namespec.kase]();
+                } else if (namespec.type === 'prop' && 
+                    (namespec.value in sprite.userdata)) {
+                        sprite.name = sprite.name
+                            + sprite.userdata[namespec.value][namespec.kase]();
+                } else if (namespec.type === 'ext') {
+                    sprite.name = sprite.name + sprite.ext[namespec.kase]();
+                }
+            }
+            // Fallback
+            if (sprite.name === '') {
+                sprite.name = 'sprite';
+            }
+            nameCounts[sprite.name] = (nameCounts[sprite.name] || 0) + 1;
+        }
+        // Add numbers to disambiguate
+        if (autoNumber) {
+            spritesCopy = sprites.slice();
+            spritesCopy.sort( function (a, b) {
+                if (a.name < b.name) {
+                    return -1;
+                } else if (a.name > b.name) {
+                    return 1;
+                }
+                return 0;
+            });
+            j = 1;
+            for (i=0; i<spritesCopy.length; i++) {
+                sprite = spritesCopy[i];
+                if (nameCounts[sprite.name] === 1) {
+                    continue;
+                } else if (j === nameCounts[sprite.name]) {
+                    sprite.name = sprite.name + j;
+                    j = 1;
+                } else {
+                    sprite.name = sprite.name + j;
+                    j += 1;
+                }
+            }
+        }
     }
     
     function propertyNameUnused (name) {
@@ -41,6 +145,10 @@ $(function () {
         div.append('<span class="filename">' + file.name + '</span>');
         
         obj.filename = file.name;
+        obj.ext = obj.filename.split('.').slice(-1);
+        if (obj.ext.length === obj.filename.length) {
+            obj.ext = '';
+        }
         obj.div = div;
         obj.selected = false;
         obj.userdata = {};
@@ -56,19 +164,83 @@ $(function () {
         }
     }
     
+    function appendNameRow (pos) {
+        var div, span, rows = $('#nameset .namesetrow');
+        
+        pos = pos || 0;
+        uuid += 1;          // Cheap, but it's fine here
+        
+        div = $('<div class="namesetrow">');
+        if (pos >= rows.length) {
+            div.appendTo('#nameset');
+        } else {
+            div.insertAfter(rows.eq(pos))
+        }
+        pos = div.index();
+        
+        span = $('<span class="movebuttons">');
+        $('<button class="moveup">Sort Asc</button>')
+            .button({text: false, icons: {primary: 'ui-icon-triangle-1-n'}})
+            .appendTo(span);
+        $('<button class="movedown">Sort Des</button>')
+            .button({text: false, icons: {primary: 'ui-icon-triangle-1-s'}})
+            .appendTo(span);
+        span.buttonset();
+        span.appendTo(div);
+        
+        $('<select class="nametype">')
+            .append('<option value="prop">Property</option>')
+            .append('<option value="lit">Literal</option>')
+            .append('<option value="ext">Extension</option>')
+            .appendTo(div)
+            .selectmenu({width: 100});
+        
+        $('<span class="casebuttons">')
+            .append('<input type="radio" value="toMixedCase" id="case'
+                + uuid + 'M" name="case' + uuid + '" checked>')
+            .append('<label for="case' + uuid + 'M">Ab</label>')
+            .append('<input type="radio" value="toUpperCase" id="case'
+                + uuid + 'U" name="case' + uuid + '">')
+            .append('<label for="case' + uuid + 'U">AB</label>')
+            .append('<input type="radio" value="toLowerCase" id="case'
+                + uuid + 'L" name="case' + uuid + '">')
+            .append('<label for="case' + uuid + 'L">ab</label>')
+            .buttonset()
+            .appendTo(div);
+
+        $('<input class="nameinput" size="10">').appendTo(div);
+            
+        $('<button class="addname">Add</button>')
+            .button({text: false, icons: {primary: 'ui-icon-plus'}})
+            .appendTo(div);
+            
+        $('<button class="remname">Remove</button>')
+            .button({text: false, icons: {primary: 'ui-icon-minus'}})
+            .appendTo(div);
+
+        // Special case stuff for first element
+        if (rows.length === 0) {
+            div.find('select').val('lit').selectmenu('refresh');
+        }
+            //div.find('.remname').prop('disabled', true);
+        // } else {
+        //     $('#nameset .remname').prop('disabled', false);
+        // }
+    }
+    
     function appendProperty (name, values) {
         var div, span, i;
         
         div = $('<div class="propertysetrow">').data('property', name);
-        $('#buttondiv').before(div);
+        $('#propset .centerdiv').before(div);
         i = div.index();
         
         span = $('<span class="sortbuttons">');
         $('<button class="sortup">Sort Asc</button>')
-            .button({text: false, icons: {primary: 'ui-icon-triangle-1-n'}})
+            .button({text: false, icons: {primary: 'ui-icon-arrow-1-n'}})
             .appendTo(span);
         $('<button class="sortdown">Sort Des</button>')
-            .button({text: false, icons: {primary: 'ui-icon-triangle-1-s'}})
+            .button({text: false, icons: {primary: 'ui-icon-arrow-1-s'}})
             .appendTo(span);
         span.buttonset();
         span.appendTo(div);
@@ -85,12 +257,10 @@ $(function () {
         $('<span class="propsetname propstyle">' + name + '</span> ')
             .appendTo(div);
             
-        $('<input class="propinput" size="8">')
+        $('<input class="propinput" size="12">')
             .autocomplete({source: values})
             .appendTo(div);
-            
-        //$('#buttondiv').before(div);
-        
+
     }
     
     function updatePropEditor () {
@@ -98,23 +268,20 @@ $(function () {
         for (var prop in properties) {
             appendProperty(prop, properties[prop]);
         }
-        
-        // FIXME: Add button
     }
 
     // Setup basic JQ UI stuff
     //$('.tabs').tabs();
     $('#applyprop').button({icons: {primary: 'ui-icon-check'}});
+    $('#autonumber').button({icons: {primary: 'ui-icon-tag'}})
+        .prop('checked', true).button('refresh');
     $('#addprop').button({icons: {primary: 'ui-icon-circle-plus'}});
+    $('#addname').button({icons: {primary: 'ui-icon-circle-plus'}});
     dialog =$('#propnamedialog').dialog(
         {autoOpen: false, width: 350, height: 300, modal: true});
     
-    // Event handlers
-    // $('#configtabs').tabs({beforeActivate: function (e, ui) {
-    //     if (ui.newPanel.is('#propertiestab')) {
-            
-    //     }
-    // }});
+    // Event handlers ////////////
+
     
     // New or rename property
     function nameButtonHandler (e) {
@@ -167,6 +334,13 @@ $(function () {
     $('#addprop').on('click', null, 'new', nameButtonHandler);
     $('#propset').on('click', '.renameprop', 'rename', nameButtonHandler);
     
+    // Turn on/off auto numbering
+    $('#autonumber').on('change', function () {
+        autoNumber = this.checked;
+        generateSpriteNames();
+        displaySpriteProperties(curSprite);
+    })
+    
     // Handle (un)deletes
     $('#propset').on('change', '.deleteprop', function () {
         var i, row = $(this).parents('.propertysetrow'), prop = row.data('property');
@@ -183,13 +357,10 @@ $(function () {
     });
     
     // Update property view
-    $('#icongallery').on('mouseover', 'spritecell', function () {
-       var sprites[$(this).index()];
-       var ul = $('#proppanel ul');
-       
-       $('#spritefilename').html(sprite.filename);
-       
-       ul.empty();
+    $('#icongallery').on('mouseenter', '.spritecell', function () {
+        curSprite = sprites[$(this).index()];
+        
+        displaySpriteProperties(curSprite);
        
     });
     
@@ -211,26 +382,7 @@ $(function () {
     $('#propset').on('click', '.sortdown', -1, sortHandler);
     
     // Apply property changes
-    $('#applyprop').on('click', function () {
-        var i, prop;
-        
-        for (i=0; i<sprites.length; i++) {
-            if (!sprites[i].selected) {
-                continue;
-            }
-            // Set properties
-            for (prop in changes.set) {
-                sprites[i].userdata[prop] = changes.set[prop];
-            }
-           // Rename properties
-           // Delete properties
-        }
-        
-        // Update properties map
-        
-        updatePropEditor();
-        console.log(JSON.stringify(sprites, null, ' '));
-    });
+    $('#applyprop').on('click', applyPropertyChanges);
     
     // Handle property edits
     $("#propset").on('input autocompleteselect', '.propinput', function (e, ui) {
@@ -254,12 +406,92 @@ $(function () {
         sprites[i].selected = !(sprites[i].selected);
     });
     
+    // Name box ////////////////////////
+    
+    // Add name row
+    $('#nameset').on('click', '.addname', function () {
+        var pos = $(this).parents('.namesetrow').index();
+        appendNameRow(pos);
+        naming.splice(pos+1, 0, {type: 'prop', value: '', kase: 'toMixedCase'});
+        generateSpriteNames();
+        displaySpriteProperties(curSprite);
+    });
+    
+    // Remove name row
+    $('#nameset').on('click', '.remname', function () {
+        var row = $(this).parents('.namesetrow'), pos = row.index();
+        // Don't delete last row
+        if ($('#nameset .namesetrow').length === 1) {
+            return;
+        }
+        row.remove();
+        naming.splice(pos, 0);
+        generateSpriteNames();
+        displaySpriteProperties(curSprite);
+        // if ($('#nameset .namesetrow').length === 1) {
+        //     $('#nameset .remname').prop('disabled', true);
+        // }
+    });
+    
+    // Move row up
+    $('#nameset').on('click', '.moveup', function () {
+        var row = $(this).parents('.namesetrow'), prev = row.prev();
+        var pos = row.index();
+        if (prev.length > 0) {
+            row.detach();
+            prev.before(row);
+            naming.splice(pos-1, 0, naming.splice(pos, 1)[0]);
+        }
+        generateSpriteNames();
+        displaySpriteProperties(curSprite);
+    });
+    
+    // Move row down
+    $('#nameset').on('click', '.movedown', function () {
+        var row = $(this).parents('.namesetrow'), next = row.next();
+        var pos = row.index();
+        if (next.length > 0) {
+            row.detach();
+            next.after(row);
+            naming.splice(pos, 0, naming.splice(pos, 1)[0]);
+        }
+        generateSpriteNames();
+        displaySpriteProperties(curSprite);
+    });
+    
+    // Edit name field
+    $('#nameset').on('input', '.nameinput', function () {
+        var row = $(this).parents('.namesetrow'), pos = row.index();
+        var val = $(this).val();
+        naming[pos].value = val;
+        generateSpriteNames();
+        displaySpriteProperties(curSprite);
+    });
+    
+    // Change field type
+    $('#nameset').on('selectmenuchange', '.nametype', function () {
+        var row = $(this).parents('.namesetrow'), pos = row.index();
+        var val = $(this).val();
+        naming[pos].type = val;
+        generateSpriteNames();
+        displaySpriteProperties(curSprite);
+    });
+    
+    // Case button change
+    $('#nameset').on('change', '.casebuttons', function () {
+        var row = $(this).parents('.namesetrow'), pos = row.index();
+        var val = $(this).find(':checked').val();
+        naming[pos].kase = val;
+        generateSpriteNames();
+        displaySpriteProperties(curSprite);
+    });
+    
     // Set up data
-    // updatePropertySetters();
-    // updatePropertyEditors();
     updatePropEditor();
+    appendNameRow(); // FIXME
 
-    // Drag and drop stuff
+    // Drag and drop stuff /////////////
+    
     $('#icongallery').on('dragenter', function (e) {
         e.stopPropagation();
         e.preventDefault();
@@ -267,10 +499,12 @@ $(function () {
         //$(this).css('border', '2px solid red');
         
     });
+    
     $('#icongallery').on('dragover', function (e) {
         e.stopPropagation();
         e.preventDefault();
     });
+    
     $('#icongallery').on('drop', function (e) {
         var files, img;
         
@@ -281,17 +515,20 @@ $(function () {
             // FIXME: Check type
             addToGallery(files[i]);
         }
-
+        generateSpriteNames();
    });
+   
     $(document).on('dragenter', function (e) {
         e.stopPropagation();
         e.preventDefault();
     });
+    
     $(document).on('dragover', function (e) {
         e.stopPropagation();
         e.preventDefault();
         //$('#droptarget').css('border', '1px dotted black');
     });
+    
     $(document).on('drop', function (e) {
         e.stopPropagation();
         e.preventDefault();

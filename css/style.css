@@ -1,5 +1,11 @@
 body {
-    font-size: 80%;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10px;
+}
+
+ul {
+    text-align: left;
+    list-style-type: none;
 }
 
 h1 {
@@ -76,13 +82,11 @@ h1 {
     text-decoration: line-through;
 }
 
-#buttondiv {
+.controlpanel .centerdiv {
     text-align: center;
     width: 100%;
 }
 
-/* jQuery UI overrides */
-
-.ui-tabs .ui-tabs-nav li a {
-    font-size: small;
+.namesetrow {
+    vertical-align: middle;
 }
