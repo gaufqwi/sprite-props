@@ -46,12 +46,23 @@
         <div id="actionpanel" class="controlpanel">
             <h1>Actions</h1>
             
+            <div class="centerdiv">
+                <button id="downloadbutton">Download Properties File</button>
+            </div>
+            
+            <div class="centerdiv">
+                <button id="selectall">Select All</button>
+                <button id="selectnone">Select None</button>
+            </div>
+            
         </div>
     </div>
     
     <div class="column" style="width: 736px;">
     <div id="icongallery"></div>
     
+        <script src="lib/Blob.js"></script>
+        <script src="lib/FileSaver.js"></script>
         <script src="lib/jquery-2.1.1.min.js"></script>
         <script src="lib/jquery-ui.min.js"></script>
         <script src="js/code.js"></script>

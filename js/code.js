@@ -1,7 +1,7 @@
 $(function () {
     var sprites = [], properties = {}, curSprite = null, autoNumber = true;
     var changes = {set: {}, rename: {}, delete: [] };
-    var naming = [{type: 'lit', value: '', kase: 'toMixedCase'}], uuid = 0;
+    var naming = [{type: 'lit', value: '', case: 'toMixedCase'}], uuid = 0;
     var dialog;
     
     // Test data
@@ -14,6 +14,31 @@ $(function () {
     
     function dbg(ob) {
         console.log(JSON.stringify(ob, null, " "));
+    }
+    
+    function massSelect (state) {
+        var i;
+        for (i=0; i<sprites.length; i++) {
+            sprites[i].selected = state;
+            sprites[i].div.toggleClass('hilite', state);
+        }
+    }
+    
+    function generateJSON () {
+        var i, json = [], ob, sprite, prop;
+        for (i=0; i<sprites.length; i++) {
+            sprite = sprites[i];
+            //dbg(sprite);
+            ob = {filename: sprite.filename, name: sprite.name, properties: {}};
+            if (sprite.ext.length > 0) {
+                ob.type = sprite.ext;
+            }
+            for (prop in sprite.userdata) {
+                ob.properties[prop] = sprite.userdata[prop];
+            }
+            json.push(ob);
+        }
+        return JSON.stringify(json);
     }
     
     function displaySpriteProperties (sprite) {
@@ -59,6 +84,7 @@ $(function () {
         }
            
            changes = {set: {}, rename: {}, delete: [] };
+           massSelect(false);
            updatePropEditor();
     }
     
@@ -71,14 +97,14 @@ $(function () {
             for (j=0; j<naming.length; j++) {
                 namespec = naming[j];
                 if (namespec.type === 'lit') {
-                    dbg(namespec);
-                    sprite.name = sprite.name + namespec.value[namespec.kase]();
+                    //dbg(namespec);
+                    sprite.name = sprite.name + namespec.value[namespec.case]();
                 } else if (namespec.type === 'prop' && 
                     (namespec.value in sprite.userdata)) {
                         sprite.name = sprite.name
-                            + sprite.userdata[namespec.value][namespec.kase]();
+                            + sprite.userdata[namespec.value][namespec.case]();
                 } else if (namespec.type === 'ext') {
-                    sprite.name = sprite.name + sprite.ext[namespec.kase]();
+                    sprite.name = sprite.name + sprite.ext[namespec.case]();
                 }
             }
             // Fallback
@@ -145,7 +171,7 @@ $(function () {
         div.append('<span class="filename">' + file.name + '</span>');
         
         obj.filename = file.name;
-        obj.ext = obj.filename.split('.').slice(-1);
+        obj.ext = obj.filename.split('.').slice(-1)[0];
         if (obj.ext.length === obj.filename.length) {
             obj.ext = '';
         }
@@ -277,12 +303,32 @@ $(function () {
         .prop('checked', true).button('refresh');
     $('#addprop').button({icons: {primary: 'ui-icon-circle-plus'}});
     $('#addname').button({icons: {primary: 'ui-icon-circle-plus'}});
+    $('#downloadbutton').button();
+    $('#selectall').button();
+    $('#selectnone').button();
     dialog =$('#propnamedialog').dialog(
         {autoOpen: false, width: 350, height: 300, modal: true});
     
     // Event handlers ////////////
-
     
+    // Action buttons ////////////
+    
+    $('#downloadbutton').on('click', function () {
+        var blob = new Blob([generateJSON()], {type: 'application/json;charset=utf-8'});
+        saveAs(blob, 'properties.json');
+        console.log(generateJSON());
+    });
+    
+    $('#selectall').on('click', function () {
+        massSelect(true); 
+    });
+    
+    $('#selectnone').on('click', function () {
+        massSelect(false); 
+    });
+    
+    // Property editor
+
     // New or rename property
     function nameButtonHandler (e) {
         // var buttons = {'Cancel': function () {
@@ -321,7 +367,7 @@ $(function () {
                     }
                     row.children('.propsetname')
                         .html(prop);
-                    dbg(changes);
+                    //dbg(changes);
                     dialog.dialog('close');
                 } else {
                     $('#propnamedialog .errmsg').html("There is already a property with that name.");
@@ -333,13 +379,6 @@ $(function () {
     }
     $('#addprop').on('click', null, 'new', nameButtonHandler);
     $('#propset').on('click', '.renameprop', 'rename', nameButtonHandler);
-    
-    // Turn on/off auto numbering
-    $('#autonumber').on('change', function () {
-        autoNumber = this.checked;
-        generateSpriteNames();
-        displaySpriteProperties(curSprite);
-    })
     
     // Handle (un)deletes
     $('#propset').on('change', '.deleteprop', function () {
@@ -386,7 +425,7 @@ $(function () {
     
     // Handle property edits
     $("#propset").on('input autocompleteselect', '.propinput', function (e, ui) {
-        var val, prop = $(this).parent().data('property');
+        var val, prop = $(this).parents('.propertysetrow').data('property');
         if (ui) {
             val = ui.item.label;
         }   else {
@@ -408,11 +447,18 @@ $(function () {
     
     // Name box ////////////////////////
     
+    // Turn on/off auto numbering
+    $('#autonumber').on('change', function () {
+        autoNumber = this.checked;
+        generateSpriteNames();
+        displaySpriteProperties(curSprite);
+    })
+    
     // Add name row
     $('#nameset').on('click', '.addname', function () {
         var pos = $(this).parents('.namesetrow').index();
         appendNameRow(pos);
-        naming.splice(pos+1, 0, {type: 'prop', value: '', kase: 'toMixedCase'});
+        naming.splice(pos+1, 0, {type: 'prop', value: '', case: 'toMixedCase'});
         generateSpriteNames();
         displaySpriteProperties(curSprite);
     });
@@ -481,7 +527,7 @@ $(function () {
     $('#nameset').on('change', '.casebuttons', function () {
         var row = $(this).parents('.namesetrow'), pos = row.index();
         var val = $(this).find(':checked').val();
-        naming[pos].kase = val;
+        naming[pos].case = val;
         generateSpriteNames();
         displaySpriteProperties(curSprite);
     });
